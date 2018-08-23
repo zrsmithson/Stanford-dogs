@@ -1,0 +1,12 @@
+# cached
+/__pycache__/*
+
+# saved models
+/saved_models/*
+
+# saved plots
+/Plots/*
+
+# downloaded datasets
+/DATASETS/*
+/data/*.mat
