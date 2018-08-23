@@ -1,12 +1,13 @@
 # cached
-/__pycache__/*
+__pycache__/*
 
 # saved models
-/saved_models/*
+saved_models/*
 
 # saved plots
-/Plots/*
+Plots/*
+!Plots/public
 
 # downloaded datasets
-/DATASETS/*
-/data/*.mat
+DATASETS/*
+data/*.mat

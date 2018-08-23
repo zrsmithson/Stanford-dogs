@@ -30,13 +30,18 @@ assert torch.cuda.is_available(), 'Error: CUDA not found!'
 
 def main():
     args = parse_args()
-    train_model(batch_size=args.batch_size, n_epochs=args.n_epochs, learning_rate = args.learning_rate)
+    train_model(batch_size=args.batch_size,
+                n_epochs=args.n_epochs,
+                learning_rate = args.learning_rate,
+                saved_epoch = args.saved_epoch,
+                run_id=args.run_id)
     print("ok")
 
 def train_model(batch_size, n_epochs, learning_rate,
-          run_id="def", set_name="stanford_dogs",
-          save_every=1000, save_path=configs.models,
-          plot_every=500, plot_path=configs.plots):
+                saved_epoch,
+                run_id="def", set_name="stanford_dogs",
+                save_every=1000, save_path=configs.models,
+                plot_every=500, plot_path=configs.plots):
     # Setup save directories
     if save_path:
         save_path = os.path.join(save_path, "run_{}".format(run_id))
@@ -68,7 +73,7 @@ def train_model(batch_size, n_epochs, learning_rate,
         ax.set_title(classes[labels[idx]], {'fontsize': batch_size/5}, pad=0.4)
     plt.tight_layout(pad=1, w_pad=0, h_pad=0)
     if plot_path:
-        plt.savefig(plot_path+"_init")
+        plt.savefig(os.path.join(plot_path, "Initial_Visualization"))
     else:
         plt.show()
     plt.clf()
@@ -111,7 +116,7 @@ def train_model(batch_size, n_epochs, learning_rate,
         loss_over_time = [] # to track the loss as the network trains
 
         for epoch in range(n_epochs):  # loop over the dataset multiple times
-
+            output_epoch = epoch + saved_epoch
             running_loss = 0.0
 
             for batch_i, data in enumerate(train_loader):
@@ -142,31 +147,32 @@ def train_model(batch_size, n_epochs, learning_rate,
                     avg_loss = running_loss/45
                     # record and print the avg loss over the 100 batches
                     loss_over_time.append(avg_loss)
-                    print('Epoch: {}, Batch: {}, Avg. Loss: {}'.format(epoch + 1, batch_i+1, avg_loss))
+                    print('Epoch: {}, Batch: {}, Avg. Loss: {}'.format(output_epoch + 1, batch_i+1, avg_loss))
                     running_loss = 0.0
-            if epoch % 100 == 99: # save every 100 epochs
-                torch.save(net.state_dict(), 'saved_models/Net2_{}.pt'.format(epoch + 1))
+            if output_epoch % 100 == 99: # save every 100 epochs
+                torch.save(net.state_dict(), 'saved_models/Net2_{}.pt'.format(output_epoch + 1))
 
         print('Finished Training')
         return loss_over_time
 
-    # ToDo: add option to load
-    # net.load_state_dict(torch.load('saved_models/Net2_10000.pt'))
+    if saved_epoch:
+        net.load_state_dict(torch.load('saved_models/Net2_{}.pt'.format(saved_epoch)))
 
     # call train and record the loss over time
     training_loss = train(n_epochs)
 
     # visualize the loss as the network trained
-    plt.plot(training_loss)
+    fig = plt.figure()
+    plt.plot(45*np.arange(len(training_loss)), training_loss)
     plt.rc('xtick', labelsize=12)
     plt.rc('ytick', labelsize=12)
-    #plt.rc('xlabel')
-    #plt.rc('ylabel', fontsize=12)
-    plt.xlabel('100\'s of batches', fontsize=12)
+    plt.xlabel('Number of Batches', fontsize=12)
     plt.ylabel('loss', fontsize=12)
-    plt.ylim(0, 2.5) # consistent scale
+    plt.ylim(0, 5.5) # consistent scale
+    plt.tight_layout()
     if plot_path:
-        plt.savefig(plot_path+"_loss")
+        plt.savefig(os.path.join(plot_path, "Loss_Over_Time"))
+        print("saved")
     else:
         plt.show()
     plt.clf()
@@ -246,7 +252,7 @@ def train_model(batch_size, n_epochs, learning_rate,
                 ax.set_title("({})\n{}".format(classes[labels[idx]], classes[preds[idx]]), color="red", pad=.4)
                 misclassification_found = True
     if plot_path:
-        plt.savefig(plot_path + "_out")
+        plt.savefig(os.path.join(plot_path, "Results Visualization"))
     else:
         plt.show()
     plt.clf()
@@ -257,6 +263,8 @@ def parse_args():
     parser.add_argument('--batch_size', help='Batch_size', default=64, type=int)
     parser.add_argument('--n_epochs', help='Number of Epochs', default=5, type=int)
     parser.add_argument('--learning_rate', help='Learning Rate', default=0.01, type=float)
+    parser.add_argument('--saved_epoch', help='epoch of saved model', default=None, type=int)
+    parser.add_argument('--run_id', help='Used to help identify artifacts', default=0, type=int)
     args = parser.parse_args()
     return args
 
